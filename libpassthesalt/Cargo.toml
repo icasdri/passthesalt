@@ -1,0 +1,9 @@
+[package]
+name = "libpassthesalt"
+version = "0.1.0"
+authors = ["icasdri <icasdri@gmail.com>"]
+
+[dependencies]
+sodiumoxide = "0.0.12"
+rustc-serialize = "0.3.19"
+rfc1751 = "0.1.0"

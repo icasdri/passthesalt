@@ -3,6 +3,7 @@ name = "passthesalt"
 version = "0.1.0"
 dependencies = [
  "clap 2.9.2 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libpassthesalt 0.1.0",
 ]
 
 [[package]]
@@ -33,6 +34,54 @@ dependencies = [
 name = "libc"
 version = "0.2.13"
 source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "libpassthesalt"
+version = "0.1.0"
+dependencies = [
+ "rfc1751 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rustc-serialize 0.3.19 (registry+https://github.com/rust-lang/crates.io-index)",
+ "sodiumoxide 0.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "libsodium-sys"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "pkg-config 0.3.8 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
+name = "pkg-config"
+version = "0.3.8"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "rfc1751"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "rustc-serialize"
+version = "0.3.19"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "serde"
+version = "0.7.14"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+
+[[package]]
+name = "sodiumoxide"
+version = "0.0.12"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "libc 0.2.13 (registry+https://github.com/rust-lang/crates.io-index)",
+ "libsodium-sys 0.0.12 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde 0.7.14 (registry+https://github.com/rust-lang/crates.io-index)",
+]
 
 [[package]]
 name = "strsim"

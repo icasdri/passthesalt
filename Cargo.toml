@@ -4,4 +4,5 @@ version = "0.1.0"
 authors = ["icasdri <icasdri@gmail.com>"]
 
 [dependencies]
+libpassthesalt = { path = "libpassthesalt" }
 clap = "2.9.2"
