@@ -1,3 +1,10 @@
+/*
+ * Copyright 2016 icasdri
+ * 
+ * This file is part of passthesalt. 
+ * See COPYING for licensing details.
+ */
+
 #[macro_use]
 extern crate clap;
 
