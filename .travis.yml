@@ -10,4 +10,4 @@ matrix:
 before_install: cd build && ./build_libsodium.sh
 
 env:
-    - SODIUM_LIB_DIR=build/libsodium_lib SODIUM_STATIC=yes
+    - SODIUM_LIB_DIR=build/libsodium_lib/src/libsodium SODIUM_STATIC=yes
