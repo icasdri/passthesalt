@@ -1,1 +1,10 @@
+# compiled output
 target
+passthesalt
+*.o
+*.so
+
+# working files
+*.swp
+*.swo
+.idea/
