@@ -23,4 +23,4 @@ make
 make check
 
 cd ..
-ln -s "$TARGET" 'libsodium-root'
+mv "$TARGET" libsodium_lib

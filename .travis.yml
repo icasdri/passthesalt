@@ -10,4 +10,5 @@ matrix:
 before_install: ./build/build_libsodium.sh
 
 env:
-    - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:build/libsodium-root
+    - SODIUM_LIB_DIR=build/libsodium_lib
+    - SODIUM_STATIC=yes
