@@ -6,3 +6,8 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+
+before_install: ./build/build_libsodium.sh
+
+env:
+    - PKG_CONFIG_PATH=$PKG_CONFIG_PATH:build/libsodium-root
