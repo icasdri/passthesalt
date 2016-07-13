@@ -7,7 +7,7 @@ matrix:
   allow_failures:
     - rust: nightly
 
-before_install: ./build/build_libsodium.sh
+before_install: cd build && ./build_libsodium.sh
 
 env:
     - SODIUM_LIB_DIR=build/libsodium_lib SODIUM_STATIC=yes

@@ -3,6 +3,10 @@
 # Fail on any non-zero exit status
 set -e
 
+# This script must be executed in the directory it lives in.
+# Here's quick check to a sister file
+[ -f libsodium.asc ]
+
 VERSION='1.0.10'
 TARGET="libsodium-${VERSION}"
 TARGET_FILE="${TARGET}.tar.gz"
