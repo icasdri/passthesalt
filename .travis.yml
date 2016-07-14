@@ -10,4 +10,4 @@ matrix:
 before_install: cd get_libsodium && ./get_libsodium.sh
 
 env:
-    - SODIUM_LIB_DIR=get_sodium/dest/usr/local/lib SODIUM_STATIC=yes
+    - SODIUM_LIB_DIR=get_libsodium/dest/usr/local/lib SODIUM_STATIC=yes
