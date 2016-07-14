@@ -7,7 +7,5 @@ matrix:
   allow_failures:
     - rust: nightly
 
-before_install: cd get_libsodium && ./get_libsodium.sh
-
-env:
-    - SODIUM_LIB_DIR=get_libsodium/dest/usr/local/lib SODIUM_STATIC=yes
+before_install: ./get_deps.sh "$TRAVIS_BUILD_DIR"
+env: SODIUM_LIB_DIR="$TRAVIS_BUILD_DIR/usr/local/lib" SODIUM_STATIC=yes
