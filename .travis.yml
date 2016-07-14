@@ -7,7 +7,7 @@ matrix:
   allow_failures:
     - rust: nightly
 
-before_install: cd sodium && ./get_libsodium.sh
+before_install: cd get_libsodium && ./get_libsodium.sh
 
 env:
-    - SODIUM_LIB_DIR=sodium/dest SODIUM_STATIC=yes
+    - SODIUM_LIB_DIR=get_sodium/dest/usr/local/lib SODIUM_STATIC=yes
