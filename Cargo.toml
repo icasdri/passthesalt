@@ -5,4 +5,7 @@ authors = ["icasdri <icasdri@gmail.com>"]
 
 [dependencies]
 libpassthesalt = { path = "libpassthesalt" }
-clap = "2.9.2"
+
+[dependencies.clap]
+version = "2"
+default-features = false
