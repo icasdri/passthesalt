@@ -6,6 +6,7 @@
  */
 
 use std::io::Write;
+use std::process;
 
 extern crate libpassthesalt as pts;
 use pts::PtsError as PE;
@@ -55,21 +56,17 @@ fn main() {
     };
 
     if let Err(err) = result {
-        let exit_code = match err {
+        let (output, exit_code) = match err {
             ME::UsageProblem(u, message) => {
-                writeln!(
-                    stderr,
-                    "{}\n\n{}\n\nFor more information try --help",
-                    message,
-                    u.usage(),
-                );
-                1
+                (format!("{}\n\n{}\n\nFor more information try --help",
+                    message, u.usage()), 1)
             },
             ME::Inner(PE::Fatal(message)) => {
-                writeln!(stderr, "{}", message);
-                102
+                (format!("{}", message), 102)
             }
             _ => unimplemented!()
         };
+        writeln!(stderr, "{}", output).expect("failed to printing to stderr");
+        process::exit(exit_code);
     }
 }
