@@ -42,9 +42,16 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
     let key_subcommand =
         SubCommand::with_name("key")
             .arg(Arg::with_name("new_key")
-                 .short("n")
-                 .long("new")
-                 .help("Generate new public/private key pair"))
+                .short("n")
+                .long("new")
+                .help("Generate new public/private key pair"))
+            .arg(Arg::with_name("private_key_output")
+                .short("o")
+                .long("output-private")
+                .requires("new_key")
+                .value_name("FILE")
+                .takes_value(true)
+                .help("The file to output the new private key to (prompts by default)"))
             .about("Generate new keys and other key-related operations");
 
     let encrypt_subcommand =

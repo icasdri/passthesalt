@@ -6,6 +6,10 @@
  */
 
 use std::io::Write;
+use std::io::BufWriter;
+use std::io::stderr;
+use std::io::stdin;
+use std::fs::OpenOptions;
 use std::process;
 
 extern crate libpassthesalt as pts;
@@ -17,17 +21,64 @@ use clap::ArgMatches;
 
 mod args;
 
+static E_STDERR: &'static str = "failed printing to stderr";
+static E_STDIN: &'static str = "failed to read user input";
+macro_rules! divider { () => ("--------------------------------------------------------") }
+macro_rules! ef_filecreate { () => ("Failed to create file '{}'. The file may already exist or you may not have permission.") }
+
 enum MainError<'a> {
     UsageProblem(&'a ArgMatches<'a>, &'static str),
     InvalidInput,
+    FileIo(String),
+    Fatal(&'static str),
     Inner(PE)
 }
 use MainError as ME;
 
 fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
-    try!(pts::init().map_err(|e| MainError::Inner(e)));
+    try!(pts::init().map_err(|e| ME::Inner(e)));
 
     if m.is_present("new_key") {
+        let (public_key_material, private_key_material) =
+            try!(pts::new_keypair().map_err(|e| ME::Inner(e)));
+
+        let mut buf = String::new();
+        let priv_target_path = match m.value_of("private_key_output") {
+            Some(f) => f,
+            None => { // prompt user
+                write!(stderr(), concat!(
+                    "Enter file in which to save the private key\n",
+                    "    (defaults to my_pts_key.txt): ")).expect(E_STDERR);
+                stdin().read_line(&mut buf).expect(E_STDIN);
+                write!(stderr(), "\n");
+                let user_input = buf.trim();
+                if user_input.len() > 0 {
+                    user_input
+                } else {
+                    "my_pts_key.txt"
+                }
+            }
+        };
+
+        let priv_target_file = try!(OpenOptions::new().write(true).create_new(true)
+            .open(priv_target_path)
+            .map_err(|e| ME::FileIo(format!(ef_filecreate!(), priv_target_path))));
+
+        let mut writer = BufWriter::new(priv_target_file);
+        writeln!(writer, "{}", private_key_material);
+
+        writeln!(stderr(), concat!(
+            "Your private key has been saved to '{}'.\n",
+            "Keep this file in a secure but accessible place.\n",
+            "\n",
+            "Below is your public key. It is a series of short words.\n",
+            "Share it with people you would like to exchange messages with.\n",
+            divider!()), priv_target_path);
+
+        println!("{}", public_key_material);
+
+        writeln!(stderr(), divider!());
+
         Ok(())
     } else {
         Err(ME::UsageProblem(m, concat!(
@@ -45,7 +96,6 @@ fn handle_decrypt(m: &ArgMatches) {
 }
 
 fn main() {
-    let mut stderr = std::io::stderr();
     let matches = args::app().get_matches();
 
     let result = match matches.subcommand() {
@@ -61,12 +111,15 @@ fn main() {
                 (format!("{}\n\n{}\n\nFor more information try --help",
                     message, u.usage()), 1)
             },
-            ME::Inner(PE::Fatal(message)) => {
+            ME::Fatal(message) | ME::Inner(PE::Fatal(message)) => {
                 (format!("{}", message), 102)
-            }
+            },
+            ME::FileIo(message) => {
+                (format!("{}", message), 40)
+            },
             _ => unimplemented!()
         };
-        writeln!(stderr, "{}", output).expect("failed printing to stderr");
+        writeln!(stderr(), "{}", output).expect(E_STDERR);
         process::exit(exit_code);
     }
 }
