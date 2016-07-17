@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 extern crate sodiumoxide as sodium;
 extern crate rustc_serialize;
 extern crate rfc1751;
@@ -12,10 +14,40 @@ use rustc_serialize::base64::Config as Base64Config;
 use rfc1751::{FromRfc1751, ToRfc1751};
 
 pub enum PtsError {
-    ParseFailed,
+    PublicKeyParse,
+    PublicKeyLength,
+    PrivateKeyParse,
+    PrivateKeyLength,
     Fatal(&'static str)
 }
 use PtsError as PE;
+
+struct PublicKeyWrapper(PublicKey);
+struct PrivateKeyWrapper(PrivateKey);
+
+impl FromStr for PublicKeyWrapper {
+    type Err = PtsError;
+    fn from_str(s: &str) -> Result<PublicKeyWrapper, PtsError> {
+        let s_mod = s.trim().to_uppercase();
+        let material = try!(s_mod.from_rfc1751()
+                            .map_err(|_| PE::PublicKeyParse));
+        let key = try!(PublicKey::from_slice(&material)
+                       .ok_or(PE::PublicKeyLength));
+        Ok(PublicKeyWrapper(key))
+    }
+}
+
+impl FromStr for PrivateKeyWrapper {
+    type Err = PtsError;
+    fn from_str(s: &str) -> Result<PrivateKeyWrapper, PtsError> {
+        let s_mod = s.trim().to_lowercase();
+        let material = try!(s_mod.from_hex()
+                            .map_err(|_| PE::PrivateKeyParse));
+        let key = try!(PrivateKey::from_slice(&material)
+                       .ok_or(PE::PrivateKeyLength));
+        Ok(PrivateKeyWrapper(key))
+    }
+}
 
 pub fn init() -> Result<(), PtsError> {
     if sodium::init() {
