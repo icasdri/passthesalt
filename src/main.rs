@@ -9,6 +9,7 @@ use std::io::Write;
 use std::io::BufWriter;
 use std::io::stderr;
 use std::io::stdin;
+use std::fs::File;
 use std::fs::OpenOptions;
 use std::process;
 
@@ -24,13 +25,16 @@ mod args;
 static E_STDERR: &'static str = "failed printing to stderr";
 static E_STDIN: &'static str = "failed to read user input";
 macro_rules! divider { () => ("--------------------------------------------------------") }
-macro_rules! ef_filecreate { () => ("Failed to create file '{}'. The file may already exist or you may not have permission.") }
-macro_rules! ef_filewrite { () => ("Failed to write to file '{}'. You may not have permission to write there.") }
+
+enum FileIoErrorType {
+    Create, Open, Read, Write
+}
+use FileIoErrorType as FI;
 
 enum MainError<'a> {
     UsageProblem(&'a ArgMatches<'a>, &'static str),
-    InvalidInput,
-    FileIo(String),
+    InvalidInput(String),
+    FileIo(FileIoErrorType, String),
     Inner(PE)
 }
 use MainError as ME;
@@ -62,11 +66,11 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
 
         let priv_target_file = try!(OpenOptions::new().write(true).create_new(true)
             .open(priv_target_path)
-            .map_err(|_| ME::FileIo(format!(ef_filecreate!(), priv_target_path))));
+            .map_err(|_| ME::FileIo(FI::Create, priv_target_path.to_owned())));
 
         let mut writer = BufWriter::new(priv_target_file);
         try!(writeln!(writer, "{}", private_key_material)
-            .map_err(|_| ME::FileIo(format!(ef_filewrite!(), priv_target_path))));
+            .map_err(|_| ME::FileIo(FI::Write, priv_target_path.to_owned())));
 
         writeln!(stderr(), concat!(
             "Your private key has been saved to '{}'.\n",
@@ -88,8 +92,16 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
     }
 }
 
-fn handle_encrypt(m: &ArgMatches) {
-    // pts::init();
+fn handle_encrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
+    try!(pts::init().map_err(|e| ME::Inner(e)));
+
+    let priv_key_path = m.value_of("priv_key").unwrap(); // is required arg
+    let pub_key_str = m.value_of("pub_key").unwrap(); // is required arg
+
+    let priv_key_file = try!(File::open(priv_key_path)
+                             .map_err(|_| ME::FileIo(FI::Open, priv_key_path.to_owned())));
+    // TODO: Testing only
+    Ok(())
 }
 
 fn handle_decrypt(m: &ArgMatches) {
@@ -115,8 +127,13 @@ fn main() {
             ME::Inner(PE::Fatal(message)) => {
                 (format!("{}", message), 102)
             },
-            ME::FileIo(message) => {
-                (format!("{}", message), 40)
+            ME::FileIo(fi_type, file) => {
+                (match fi_type {
+                    FI::Create => format!("Failed to create file '{}'. The file may already exist or you may not have permission.", file),
+                    FI::Open => format!("Failed to open file '{}' for reading. The file may not exist.", file),
+                    FI::Read => format!("Failed to read file '{}'. The file may not be accessible.", file),
+                    FI::Write => format!("Failed to write to file '{}'. You may not have permission to write there.", file)
+                }, 40)
             },
             _ => unimplemented!()
         };
