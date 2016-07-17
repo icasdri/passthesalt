@@ -66,11 +66,11 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
 
         let priv_target_file = try!(OpenOptions::new().write(true).create_new(true)
             .open(priv_target_path)
-            .map_err(|_| ME::FileIo(FI::Create, priv_target_path.to_owned())));
+            .or(Err(ME::FileIo(FI::Create, priv_target_path.to_owned()))));
 
         let mut writer = BufWriter::new(priv_target_file);
         try!(writeln!(writer, "{}", private_key_material)
-            .map_err(|_| ME::FileIo(FI::Write, priv_target_path.to_owned())));
+            .or(Err(ME::FileIo(FI::Write, priv_target_path.to_owned()))));
 
         writeln!(stderr(), concat!(
             "Your private key has been saved to '{}'.\n",
@@ -99,7 +99,7 @@ fn handle_encrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
     let pub_key_str = m.value_of("pub_key").unwrap(); // is required arg
 
     let priv_key_file = try!(File::open(priv_key_path)
-                             .map_err(|_| ME::FileIo(FI::Open, priv_key_path.to_owned())));
+                             .or(Err(ME::FileIo(FI::Open, priv_key_path.to_owned()))));
     // TODO: Testing only
     Ok(())
 }

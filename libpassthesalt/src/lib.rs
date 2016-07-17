@@ -32,10 +32,8 @@ impl FromStr for PublicKeyWrapper {
     type Err = PtsError;
     fn from_str(s: &str) -> Result<PublicKeyWrapper, PtsError> {
         let s_mod = s.trim().to_uppercase();
-        let material = try!(s_mod.from_rfc1751()
-                            .map_err(|_| PE::PublicKeyParse));
-        let key = try!(PublicKey::from_slice(&material)
-                       .ok_or(PE::PublicKeyLength));
+        let material = try!(s_mod.from_rfc1751().or(Err(PE::PublicKeyParse)));
+        let key = try!(PublicKey::from_slice(&material).ok_or(PE::PublicKeyLength));
         Ok(PublicKeyWrapper(key))
     }
 }
@@ -44,10 +42,8 @@ impl FromStr for PrivateKeyWrapper {
     type Err = PtsError;
     fn from_str(s: &str) -> Result<PrivateKeyWrapper, PtsError> {
         let s_mod = s.trim().to_lowercase();
-        let material = try!(s_mod.from_hex()
-                            .map_err(|_| PE::PrivateKeyParse));
-        let key = try!(PrivateKey::from_slice(&material)
-                       .ok_or(PE::PrivateKeyLength));
+        let material = try!(s_mod.from_hex().or(Err(PE::PrivateKeyParse)));
+        let key = try!(PrivateKey::from_slice(&material).ok_or(PE::PrivateKeyLength));
         Ok(PrivateKeyWrapper(key))
     }
 }
@@ -62,11 +58,9 @@ pub fn init() -> Result<(), PtsError> {
 
 pub fn new_keypair() -> Result<(String, String), PtsError> {
     let (PublicKey(public_key), PrivateKey(private_key)) = box_::gen_keypair();
-    let public_key_rep = try!(public_key.to_rfc1751()
-        .map_err(|_| PE::FatalEncode))
-        .to_lowercase();
+    let public_key_rep = try!(public_key.to_rfc1751().or(Err(PE::FatalEncode)));
     let private_key_rep = private_key.to_hex();
-    Ok((public_key_rep, private_key_rep))
+    Ok((public_key_rep.to_lowercase(), private_key_rep))
 }
 
 #[cfg(test)]
