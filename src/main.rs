@@ -124,8 +124,8 @@ fn main() {
                 (format!("{}\n\n{}\n\nFor more information try --help",
                     message, u.usage()), 1)
             },
-            ME::Inner(PE::Fatal(message)) => {
-                (format!("{}", message), 102)
+            ME::Inner(ref e) if *e == PE::FatalInit || *e == PE::FatalEncode => {
+                (format!("A fatal internal error has occurred: code {:?}", e), 102)
             },
             ME::FileIo(fi_type, file) => {
                 (match fi_type {

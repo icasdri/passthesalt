@@ -13,12 +13,15 @@ use rustc_serialize::base64::{FromBase64, ToBase64};
 use rustc_serialize::base64::Config as Base64Config;
 use rfc1751::{FromRfc1751, ToRfc1751};
 
+#[derive(Debug)]
+#[derive(PartialEq)]
 pub enum PtsError {
+    FatalInit,
+    FatalEncode,
     PublicKeyParse,
     PublicKeyLength,
     PrivateKeyParse,
     PrivateKeyLength,
-    Fatal(&'static str)
 }
 use PtsError as PE;
 
@@ -53,14 +56,14 @@ pub fn init() -> Result<(), PtsError> {
     if sodium::init() {
         Ok(())
     } else {
-        Err(PE::Fatal("Failed to initialize libsodium encryption facilities"))
+        Err(PE::FatalInit)
     }
 }
 
 pub fn new_keypair() -> Result<(String, String), PtsError> {
     let (PublicKey(public_key), PrivateKey(private_key)) = box_::gen_keypair();
     let public_key_rep = try!(public_key.to_rfc1751()
-        .map_err(|_| PE::Fatal("Failed to encode generated public key")))
+        .map_err(|_| PE::FatalEncode))
         .to_lowercase();
     let private_key_rep = private_key.to_hex();
     Ok((public_key_rep, private_key_rep))
