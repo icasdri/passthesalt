@@ -60,7 +60,7 @@ pub fn init() -> Result<(), PtsError> {
 pub fn new_keypair() -> Result<(String, String), PtsError> {
     let (PublicKey(public_key), PrivateKey(private_key)) = box_::gen_keypair();
     let public_key_rep = try!(public_key.to_rfc1751()
-        .map_err(|e| PE::Fatal("Failed to encode generated public key")))
+        .map_err(|_| PE::Fatal("Failed to encode generated public key")))
         .to_lowercase();
     let private_key_rep = private_key.to_hex();
     Ok((public_key_rep, private_key_rep))

@@ -25,12 +25,12 @@ static E_STDERR: &'static str = "failed printing to stderr";
 static E_STDIN: &'static str = "failed to read user input";
 macro_rules! divider { () => ("--------------------------------------------------------") }
 macro_rules! ef_filecreate { () => ("Failed to create file '{}'. The file may already exist or you may not have permission.") }
+macro_rules! ef_filewrite { () => ("Failed to write to file '{}'. You may not have permission to write there.") }
 
 enum MainError<'a> {
     UsageProblem(&'a ArgMatches<'a>, &'static str),
     InvalidInput,
     FileIo(String),
-    Fatal(&'static str),
     Inner(PE)
 }
 use MainError as ME;
@@ -50,7 +50,7 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
                     "Enter file in which to save the private key\n",
                     "    (defaults to my_pts_key.txt): ")).expect(E_STDERR);
                 stdin().read_line(&mut buf).expect(E_STDIN);
-                write!(stderr(), "\n");
+                write!(stderr(), "\n").expect(E_STDERR);
                 let user_input = buf.trim();
                 if user_input.len() > 0 {
                     user_input
@@ -62,10 +62,11 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
 
         let priv_target_file = try!(OpenOptions::new().write(true).create_new(true)
             .open(priv_target_path)
-            .map_err(|e| ME::FileIo(format!(ef_filecreate!(), priv_target_path))));
+            .map_err(|_| ME::FileIo(format!(ef_filecreate!(), priv_target_path))));
 
         let mut writer = BufWriter::new(priv_target_file);
-        writeln!(writer, "{}", private_key_material);
+        try!(writeln!(writer, "{}", private_key_material)
+            .map_err(|_| ME::FileIo(format!(ef_filewrite!(), priv_target_path))));
 
         writeln!(stderr(), concat!(
             "Your private key has been saved to '{}'.\n",
@@ -73,11 +74,11 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
             "\n",
             "Below is your public key. It is a series of short words.\n",
             "Share it with people you would like to exchange messages with.\n",
-            divider!()), priv_target_path);
+            divider!()), priv_target_path).expect(E_STDERR);
 
         println!("{}", public_key_material);
 
-        writeln!(stderr(), divider!());
+        writeln!(stderr(), divider!()).expect(E_STDERR);
 
         Ok(())
     } else {
@@ -111,7 +112,7 @@ fn main() {
                 (format!("{}\n\n{}\n\nFor more information try --help",
                     message, u.usage()), 1)
             },
-            ME::Fatal(message) | ME::Inner(PE::Fatal(message)) => {
+            ME::Inner(PE::Fatal(message)) => {
                 (format!("{}", message), 102)
             },
             ME::FileIo(message) => {
