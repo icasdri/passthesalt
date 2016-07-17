@@ -66,7 +66,7 @@ fn main() {
             }
             _ => unimplemented!()
         };
-        writeln!(stderr, "{}", output).expect("failed to printing to stderr");
+        writeln!(stderr, "{}", output).expect("failed printing to stderr");
         process::exit(exit_code);
     }
 }
