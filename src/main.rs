@@ -5,6 +5,8 @@
  * See COPYING for licensing details.
  */
 
+use std::io::Read;
+use std::io::BufReader;
 use std::io::Write;
 use std::io::BufWriter;
 use std::io::stderr;
@@ -76,7 +78,7 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
             "Your private key has been saved to '{}'.\n",
             "Keep this file in a secure but accessible place.\n",
             "\n",
-            "Below is your public key. It is a series of short words.\n",
+            "Your public key is below. It is a series of short words.\n",
             "Share it with people you would like to exchange messages with.\n",
             divider!()), priv_target_path).expect(E_STDERR);
 
@@ -87,19 +89,57 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
         Ok(())
     } else {
         Err(ME::UsageProblem(m, concat!(
-              "error: Please specify a flag to perform a key-related operation.\n",
+              "Please specify a flag to perform a key-related operation.\n",
               "       For instance, pass --new to generate a new key pair.")))
+    }
+}
+
+fn get_keys_from_args<'a>(m: &'a ArgMatches) -> Result<(String, String), MainError<'a>> {
+    let public_key_str = m.value_of("pub_key").unwrap(); // is required arg
+    let private_key_path = m.value_of("priv_key").unwrap(); // is required arg
+
+    let mut private_key_file = try!(File::open(private_key_path)
+        .or(Err(ME::FileIo(FI::Open, private_key_path.to_owned()))));
+
+    if let Ok(metadata) = private_key_file.metadata() {
+        // sanity check on file size (if possible)
+        if metadata.len() > 100 {
+            return Err(ME::Inner(PE::PrivateKeyLength));
+        }
+    }
+
+    let mut private_key_string = String::new();
+    try!(private_key_file.read_to_string(&mut private_key_string)
+        .or(Err(ME::FileIo(FI::Read, private_key_path.to_owned()))));
+
+    Ok((public_key_str.to_owned(), private_key_string))
+}
+
+fn read_message<'a>(m: &'a ArgMatches) -> Result<Vec<u8>, MainError<'a>> {
+    if let Some(input_file_path) = m.value_of("input_file") {
+        let mut input_file = try!(File::open(input_file_path)
+            .or(Err(ME::FileIo(FI::Open, input_file_path.to_owned()))));
+        let mut reader = BufReader::new(input_file);
+        let mut target = Vec::new();
+        try!(reader.read_to_end(&mut target)
+            .or(Err(ME::FileIo(FI::Read, input_file_path.to_owned()))));
+        Ok(target)
+    } else { // prompt user
+        writeln!(stderr(), concat!(
+                "Write your message below. Press Ctrl+D when finished.",
+                divider!())).expect(E_STDERR);
+        let mut buffer = String::new();
+        stdin().read_to_string(&mut buffer).expect(E_STDIN);
+        writeln!(stderr(), divider!()).expect(E_STDERR);
+        Ok(buffer.into_bytes())
     }
 }
 
 fn handle_encrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
     try!(pts::init().map_err(|e| ME::Inner(e)));
 
-    let priv_key_path = m.value_of("priv_key").unwrap(); // is required arg
-    let pub_key_str = m.value_of("pub_key").unwrap(); // is required arg
+    let (public_key_string, private_key_string) = try!(get_keys_from_args(m));
 
-    let priv_key_file = try!(File::open(priv_key_path)
-                             .or(Err(ME::FileIo(FI::Open, priv_key_path.to_owned()))));
     // TODO: Testing only
     Ok(())
 }
@@ -124,6 +164,9 @@ fn main() {
                 (format!("{}\n\n{}\n\nFor more information try --help",
                     message, u.usage()), 1)
             },
+            ME::InvalidInput(message) => {
+                (message, 2)
+            },
             ME::Inner(ref e) if *e == PE::FatalInit || *e == PE::FatalEncode => {
                 (format!("A fatal internal error has occurred: code {:?}", e), 102)
             },
@@ -137,7 +180,7 @@ fn main() {
             },
             _ => unimplemented!()
         };
-        writeln!(stderr(), "{}", output).expect(E_STDERR);
+        writeln!(stderr(), "error: {}", output).expect(E_STDERR);
         process::exit(exit_code);
     }
 }
