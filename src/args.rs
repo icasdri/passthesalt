@@ -35,9 +35,17 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
 
     let input_file_arg =
         Arg::with_name("input_file")
+            .value_name("INPUT_FILE")
+            .takes_value(true)
+            .help("Input file to encrypt/decrypt (leave off to read from stdin)");
+
+    let output_file_arg =
+        Arg::with_name("output_file")
+            .short("o")
+            .long("output-file")
             .value_name("FILE")
             .takes_value(true)
-            .help("A file to encrypt/decrypt (leave off to read from stdin)");
+            .help("Output file (leave off to print to stdout)");
 
     let key_subcommand =
         SubCommand::with_name("key")
@@ -59,6 +67,7 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
             .arg(priv_key_arg.clone().required(true))
             .arg(pub_key_arg.clone().required(true))
             .arg(input_file_arg.clone())
+            .arg(output_file_arg.clone())
             // .arg(contacts_file_arg.clone())
             .about("Encrypt a message to a recipient's public key");
 
@@ -67,6 +76,7 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
             .arg(priv_key_arg.clone().required(true))
             .arg(pub_key_arg.clone().required(true))
             .arg(input_file_arg.clone())
+            .arg(output_file_arg.clone())
             // .arg(contacts_file_arg.clone())
             .about("Decrypt a message from a sender's public key");
 
