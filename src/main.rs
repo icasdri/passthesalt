@@ -35,7 +35,7 @@ use FileIoErrorType as FI;
 
 enum MainError<'a> {
     UsageProblem(&'a ArgMatches<'a>, &'static str),
-    InvalidInput(String),
+    Generic(String),
     FileIo(FileIoErrorType, String),
     Inner(PE)
 }
@@ -115,31 +115,29 @@ fn get_keys_from_args<'a>(m: &'a ArgMatches) -> Result<(String, String), MainErr
     Ok((public_key_str.to_owned(), private_key_string))
 }
 
-fn read_message<'a>(m: &'a ArgMatches) -> Result<Vec<u8>, MainError<'a>> {
+fn read_input<'a>(m: &'a ArgMatches, prompt: &'static str) -> Result<Vec<u8>, MainError<'a>> {
+    let mut target = Vec::new();
     if let Some(input_file_path) = m.value_of("input_file") {
         let mut input_file = try!(File::open(input_file_path)
             .or(Err(ME::FileIo(FI::Open, input_file_path.to_owned()))));
         let mut reader = BufReader::new(input_file);
-        let mut target = Vec::new();
         try!(reader.read_to_end(&mut target)
             .or(Err(ME::FileIo(FI::Read, input_file_path.to_owned()))));
-        Ok(target)
     } else { // prompt user
         writeln!(stderr(), concat!(
-                "Write your message below. Press Enter then Ctrl+D when finished.\n",
-                divider!())).expect(E_STDERR);
-        let mut buffer = String::new();
-        stdin().read_to_string(&mut buffer).expect(E_STDIN);
+                "{}. Press Enter then Ctrl+D when finished.\n",
+                divider!()), prompt).expect(E_STDERR);
+        stdin().read_to_end(&mut target).expect(E_STDIN);
         writeln!(stderr(), divider!()).expect(E_STDERR);
-        Ok(buffer.into_bytes())
     }
+    Ok(target)
 }
 
 fn handle_encrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
     try!(pts::init().map_err(|e| ME::Inner(e)));
 
     let (public_key_string, private_key_string) = try!(get_keys_from_args(m));
-    let message_bytes = try!(read_message(m));
+    let message_bytes = try!(read_input(m, "Write your message below"));
 
     let cipher_text = try!(
         pts::encrypt(&public_key_string, &private_key_string, &message_bytes)
@@ -162,8 +160,55 @@ fn handle_encrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
     Ok(())
 }
 
-fn handle_decrypt(m: &ArgMatches) {
-    // pts::init();
+fn handle_decrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
+    try!(pts::init().map_err(|e| ME::Inner(e)));
+
+    let (public_key_string, private_key_string) = try!(get_keys_from_args(m));
+    let input = try!(read_input(m, "Enter the encrypted content below"));
+
+    let cipher_text = try!(std::str::from_utf8(&input)
+                           .or(Err(ME::Inner(PE::DecryptParse))));
+
+    let plain_bytes = try!(
+        pts::decrypt(&public_key_string, &private_key_string, cipher_text)
+            .map_err(|e| ME::Inner(e)));
+
+    let mut buf = String::new();
+    if let Some(output_file_path) = match m.value_of("output_file") {
+        None => match std::str::from_utf8(&plain_bytes) {
+            Ok(plain_text) => {
+                println!("{}", plain_text);
+                None
+            },
+            Err(_) => { // tell user that output cannot be printed
+                write!(stderr(), concat!(
+                        "The decrypted content is not text.\n",
+                        "Please specify a file to save it to: ")).expect(E_STDERR);
+                stdin().read_line(&mut buf).expect(E_STDIN);
+                write!(stderr(), "\n").expect(E_STDERR);
+                let user_input = buf.trim();
+                if user_input.len() > 0 {
+                    Some(user_input)
+                } else {
+                    return Err(ME::Generic("No file specified.".to_owned()));
+                }
+            }
+        },
+        Some(explicitly_given) => Some(explicitly_given)
+    } {
+        let output_file = try!(OpenOptions::new().write(true).create_new(true)
+            .open(output_file_path)
+            .or(Err(ME::FileIo(FI::Create, output_file_path.to_owned()))));
+
+        let mut writer = BufWriter::new(output_file);
+        try!(writeln!(writer, "{}", cipher_text)
+            .or(Err(ME::FileIo(FI::Write, output_file_path.to_owned()))));
+
+        writeln!(stderr(), "Your decrypted message/file has been saved to '{}'.",
+            output_file_path).expect(E_STDERR);
+    }
+    
+    Ok(())
 }
 
 fn main() {
@@ -172,7 +217,7 @@ fn main() {
     let result = match matches.subcommand() {
         ("key", Some(m)) => handle_key(m),
         ("encrypt", Some(m)) => handle_encrypt(m),
-        // ("decrypt", Some(m)) => handle_decrypt(m),
+        ("decrypt", Some(m)) => handle_decrypt(m),
         _ => unreachable!()
     };
 
@@ -182,11 +227,11 @@ fn main() {
                 (format!("{}\n\n{}\n\nFor more information try --help",
                     message, u.usage()), 1)
             },
-            ME::InvalidInput(message) => {
-                (message, 2)
+            ME::Generic(message) => {
+                (message, 7)
             },
             ME::Inner(ref e) if *e == PE::FatalInit || *e == PE::FatalEncode => {
-                (format!("A fatal internal error has occurred: code {:?}", e), 102)
+                (format!("A fatal internal error has occurred: code {:?}", e), 9)
             },
             ME::FileIo(fi_type, file) => {
                 (match fi_type {
@@ -194,7 +239,7 @@ fn main() {
                     FI::Open => format!("Failed to open file '{}' for reading. The file may not exist.", file),
                     FI::Read => format!("Failed to read file '{}'. The file may not be accessible.", file),
                     FI::Write => format!("Failed to write to file '{}'. You may not have permission to write there.", file)
-                }, 40)
+                }, 4)
             },
             _ => unimplemented!()
         };
