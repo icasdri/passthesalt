@@ -7,6 +7,8 @@ extern crate rfc1751;
 use sodium::crypto::box_;
 use sodium::crypto::box_::PublicKey;
 use sodium::crypto::box_::SecretKey as PrivateKey;
+use sodium::crypto::box_::Nonce;
+use sodium::crypto::box_::NONCEBYTES;
 
 use rustc_serialize::hex::{FromHex, ToHex};
 use rustc_serialize::base64;
@@ -29,6 +31,9 @@ pub enum PtsError {
     PublicKeyLength,
     PrivateKeyParse,
     PrivateKeyLength,
+    DecryptParse,
+    DecryptPhase,
+    DecryptLength,
 }
 use PtsError as PE;
 
@@ -75,8 +80,29 @@ pub fn encrypt(public_key_str: &str, private_key_str: &str, message_bytes: &[u8]
     let PublicKeyWrapper(public_key) = try!(public_key_str.parse());
     let PrivateKeyWrapper(private_key) = try!(private_key_str.parse());
     let nonce = box_::gen_nonce();
-    let cipher_bytes = box_::seal(message_bytes, &nonce, &public_key, &private_key);
-    Ok(cipher_bytes.to_base64(BASE64_CONFIG))
+    let Nonce(nonce_bytes) = nonce;
+    let mut cipher_bytes = box_::seal(message_bytes, &nonce, &public_key, &private_key);
+    let mut output_bytes = cipher_bytes;
+    output_bytes.extend_from_slice(&nonce_bytes);
+    Ok(output_bytes.to_base64(BASE64_CONFIG))
+}
+
+pub fn decrypt(public_key_str: &str, private_key_str: &str, cipher_text: &str)
+    -> Result<Vec<u8>, PtsError> {
+    let PublicKeyWrapper(public_key) = try!(public_key_str.parse());
+    let PrivateKeyWrapper(private_key) = try!(private_key_str.parse());
+    let input_bytes = try!(cipher_text.from_base64().or(Err(PE::DecryptParse)));
+    let len = input_bytes.len();
+    if len > box_::NONCEBYTES {
+        let nonce_bytes = &input_bytes[len-NONCEBYTES..];
+        let nonce = try!(Nonce::from_slice(nonce_bytes).ok_or(PE::DecryptParse));
+        let cipher_bytes = &input_bytes[..len-NONCEBYTES];
+        let plain_bytes = try!(box_::open(cipher_bytes, &nonce, &public_key, &private_key)
+                               .or(Err(PE::DecryptPhase)));
+        Ok(plain_bytes)
+    } else {
+        Err(PE::DecryptLength)
+    }
 }
 
 #[cfg(test)]
