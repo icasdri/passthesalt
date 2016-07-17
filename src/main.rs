@@ -126,7 +126,7 @@ fn read_message<'a>(m: &'a ArgMatches) -> Result<Vec<u8>, MainError<'a>> {
         Ok(target)
     } else { // prompt user
         writeln!(stderr(), concat!(
-                "Write your message below. Press Ctrl+D when finished.",
+                "Write your message below. Press Enter then Ctrl+D when finished.\n",
                 divider!())).expect(E_STDERR);
         let mut buffer = String::new();
         stdin().read_to_string(&mut buffer).expect(E_STDIN);
@@ -139,8 +139,26 @@ fn handle_encrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
     try!(pts::init().map_err(|e| ME::Inner(e)));
 
     let (public_key_string, private_key_string) = try!(get_keys_from_args(m));
+    let message_bytes = try!(read_message(m));
 
-    // TODO: Testing only
+    let cipher_text = try!(
+        pts::encrypt(&public_key_string, &private_key_string, &message_bytes)
+            .map_err(|e| ME::Inner(e)));
+
+    if let Some(output_file_path) = m.value_of("output_file") {
+        let output_file = try!(OpenOptions::new().write(true).create_new(true)
+            .open(output_file_path)
+            .or(Err(ME::FileIo(FI::Create, output_file_path.to_owned()))));
+
+        let mut writer = BufWriter::new(output_file);
+        try!(writeln!(writer, "{}", cipher_text)
+            .or(Err(ME::FileIo(FI::Write, output_file_path.to_owned()))));
+
+        writeln!(stderr(), "Your encrypted message/file has been saved to '{}'.",
+            output_file_path).expect(E_STDERR);
+    } else { // print to stdout
+        println!("{}", cipher_text);
+    }
     Ok(())
 }
 
@@ -153,7 +171,7 @@ fn main() {
 
     let result = match matches.subcommand() {
         ("key", Some(m)) => handle_key(m),
-        // ("encrypt", Some(m)) => handle_encrypt(m),
+        ("encrypt", Some(m)) => handle_encrypt(m),
         // ("decrypt", Some(m)) => handle_decrypt(m),
         _ => unreachable!()
     };
