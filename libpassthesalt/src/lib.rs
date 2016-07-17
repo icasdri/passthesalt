@@ -9,9 +9,16 @@ use sodium::crypto::box_::PublicKey;
 use sodium::crypto::box_::SecretKey as PrivateKey;
 
 use rustc_serialize::hex::{FromHex, ToHex};
+use rustc_serialize::base64;
 use rustc_serialize::base64::{FromBase64, ToBase64};
-use rustc_serialize::base64::Config as Base64Config;
 use rfc1751::{FromRfc1751, ToRfc1751};
+
+static BASE64_CONFIG: base64::Config = base64::Config {
+    char_set: base64::CharacterSet::UrlSafe,
+    newline: base64::Newline::LF,
+    pad: false,
+    line_length: None
+};
 
 #[derive(Debug)]
 #[derive(PartialEq)]
@@ -61,6 +68,15 @@ pub fn new_keypair() -> Result<(String, String), PtsError> {
     let public_key_rep = try!(public_key.to_rfc1751().or(Err(PE::FatalEncode)));
     let private_key_rep = private_key.to_hex();
     Ok((public_key_rep.to_lowercase(), private_key_rep))
+}
+
+pub fn encrypt(public_key_str: &str, private_key_str: &str, message_bytes: &[u8])
+    -> Result<String, PtsError> {
+    let PublicKeyWrapper(public_key) = try!(public_key_str.parse());
+    let PrivateKeyWrapper(private_key) = try!(private_key_str.parse());
+    let nonce = box_::gen_nonce();
+    let cipher_bytes = box_::seal(message_bytes, &nonce, &public_key, &private_key);
+    Ok(cipher_bytes.to_base64(BASE64_CONFIG))
 }
 
 #[cfg(test)]
