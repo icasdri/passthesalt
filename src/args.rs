@@ -5,7 +5,7 @@
  * See COPYING for licensing details.
  */
 
-use clap::{Arg, App, SubCommand, AppSettings, ArgMatches};
+use clap::{Arg, App, SubCommand, AppSettings};
 
 pub fn app<'a, 'b>() -> App<'a, 'b> {
     let priv_key_arg =
@@ -25,13 +25,13 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
             .takes_value(true)
             .help("Their public key (directly, from a file, or as a contact name)");
 
-    let contacts_file_arg =
-        Arg::with_name("contacts_file")
-            .short("c")
-            .long("contacts")
-            .value_name("file")
-            .takes_value(true)
-            .help("The contacts file to look up contacts from");
+    // let contacts_file_arg =
+        // Arg::with_name("contacts_file")
+            // .short("c")
+            // .long("contacts")
+            // .value_name("file")
+            // .takes_value(true)
+            // .help("The contacts file to look up contacts from");
 
     let input_file_arg =
         Arg::with_name("input_file")

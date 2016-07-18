@@ -131,7 +131,7 @@ fn get_keys_from_args<'a>(m: &'a ArgMatches) -> Result<(String, String), MainErr
 fn read_input<'a>(m: &'a ArgMatches, prompt: &'static str) -> Result<Vec<u8>, MainError<'a>> {
     let mut target = Vec::new();
     if let Some(input_file_path) = m.value_of("input_file") {
-        let mut input_file = try!(File::open(input_file_path)
+        let input_file = try!(File::open(input_file_path)
             .or(Err(ME::FileIo(FI::Open, input_file_path.to_owned()))));
         let mut reader = BufReader::new(input_file);
         try!(reader.read_to_end(&mut target)
