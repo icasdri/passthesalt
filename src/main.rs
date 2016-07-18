@@ -243,8 +243,18 @@ fn main() {
             ME::Generic(message) => {
                 (message, 7)
             },
-            ME::Inner(ref e) if *e == PE::FatalInit || *e == PE::FatalEncode => {
-                (format!("A fatal internal error has occurred: code {:?}", e), 9)
+            ME::Inner(e) => match e {
+                PE::FatalInit | PE::FatalEncode => (format!("A fatal internal error has occurred: code {:?}.", e), 9),
+                PE::PublicKeyParse => ("Failed to parse public key. Please make sure that you inputted the public key correctly (it is a series of 24 short words).".to_owned(), 11),
+                PE::PublicKeyLength => ("Incorrect public key length. Please make sure that you inputted the public key correctly (it is a series of 24 short words).".to_owned(), 12),
+                PE::PrivateKeyParse => ("Failed to parse private key. Please make sure that the file after -i or --me is indeed your private key file.".to_owned(), 13),
+                PE::PrivateKeyLength => ("Incorrect private key length. Please make sure that the file after -i or --me is indeed your private key file.".to_owned(), 14),
+                PE::DecryptParse => ("Failed to parse the encrypted input. Please make sure you copied/entered the input correctly. Otherwise, it may be corrupt.".to_owned(), 21),
+                PE::DecryptPhase => (concat!("Decryption failed. Could not verify sender by public key. ",
+                                             "Please make sure that you inputted the sender's public key correctly ",
+                                             "(it is a series of 24 short words). Otherwise, the input may be corrupt, ",
+                                             "or someone is trying to impersonate the sender.").to_owned(), 22),
+                PE::DecryptLength => ("Incorrect decryption input length Please make sure you copied/entered the input correctly. Otherwise it may be corrupt".to_owned(), 23)
             },
             ME::FileIo(fi_type, file) => {
                 (match fi_type {
@@ -254,7 +264,6 @@ fn main() {
                     FI::Write => format!("Failed to write to file '{}'. You may not have permission to write there.", file)
                 }, 4)
             },
-            _ => unimplemented!()
         };
         writeln!(stderr(), "error: {}", output).expect(E_STDERR);
         process::exit(exit_code);
