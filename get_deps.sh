@@ -8,4 +8,9 @@ set -e
 [ "$#" -ge 1 ]
 cd "$1/deps"
 
+if [ "$TRAVIS_OS_NAME" == "osx" ]; then
+    brew update
+    brew install gnupg
+fi
+
 ./libsodium.sh "$1"
