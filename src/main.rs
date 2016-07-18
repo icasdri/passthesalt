@@ -214,7 +214,7 @@ fn handle_decrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
             .or(Err(ME::FileIo(FI::Create, output_file_path.to_owned()))));
 
         let mut writer = BufWriter::new(output_file);
-        try!(writeln!(writer, "{}", cipher_text)
+        try!(writer.write_all(&plain_bytes)
             .or(Err(ME::FileIo(FI::Write, output_file_path.to_owned()))));
 
         writeln!(stderr(), "Your decrypted message/file has been saved to '{}'.",
