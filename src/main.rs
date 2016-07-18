@@ -95,7 +95,6 @@ fn handle_key<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
 }
 
 fn get_keys_from_args<'a>(m: &'a ArgMatches) -> Result<(String, String), MainError<'a>> {
-    let public_key_str = m.value_of("pub_key").unwrap(); // is required arg
     let private_key_path = m.value_of("priv_key").unwrap(); // is required arg
 
     let mut private_key_file = try!(File::open(private_key_path)
@@ -112,7 +111,21 @@ fn get_keys_from_args<'a>(m: &'a ArgMatches) -> Result<(String, String), MainErr
     try!(private_key_file.read_to_string(&mut private_key_string)
         .or(Err(ME::FileIo(FI::Read, private_key_path.to_owned()))));
 
-    Ok((public_key_str.to_owned(), private_key_string))
+    let public_key_string = match m.value_of("pub_key") {
+        Some(p) => p.to_owned(),
+        None => { // prompt user for public key
+            write!(stderr(), concat!(
+                "Enter the public key of the person you're exchanging\n",
+                "messages with (they should've given this to you).\n",
+                "> ")).expect(E_STDERR);
+
+            let mut buf = String::new();
+            stdin().read_line(&mut buf).expect(E_STDIN);
+            write!(stderr(), "\n").expect(E_STDERR);
+            buf.trim().to_owned()
+        }
+    };
+    Ok((public_key_string, private_key_string))
 }
 
 fn read_input<'a>(m: &'a ArgMatches, prompt: &'static str) -> Result<Vec<u8>, MainError<'a>> {
@@ -207,7 +220,7 @@ fn handle_decrypt<'a>(m: &'a ArgMatches) -> Result<(), MainError<'a>> {
         writeln!(stderr(), "Your decrypted message/file has been saved to '{}'.",
             output_file_path).expect(E_STDERR);
     }
-    
+
     Ok(())
 }
 

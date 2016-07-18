@@ -65,7 +65,7 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
     let encrypt_subcommand =
         SubCommand::with_name("encrypt")
             .arg(priv_key_arg.clone().required(true))
-            .arg(pub_key_arg.clone().required(true))
+            .arg(pub_key_arg.clone())
             .arg(input_file_arg.clone())
             .arg(output_file_arg.clone())
             // .arg(contacts_file_arg.clone())
@@ -74,7 +74,7 @@ pub fn app<'a, 'b>() -> App<'a, 'b> {
     let decrypt_subcommand =
         SubCommand::with_name("decrypt")
             .arg(priv_key_arg.clone().required(true))
-            .arg(pub_key_arg.clone().required(true))
+            .arg(pub_key_arg.clone())
             .arg(input_file_arg.clone())
             .arg(output_file_arg.clone())
             // .arg(contacts_file_arg.clone())
