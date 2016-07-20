@@ -14,5 +14,18 @@ matrix:
     - os: osx
     - rust: nightly
 
-before_install: ./get_deps.sh "$TRAVIS_BUILD_DIR"
+before_install: ./scripts/get_deps.sh "$TRAVIS_BUILD_DIR"
 env: SODIUM_LIB_DIR="$TRAVIS_BUILD_DIR/usr/local/lib" SODIUM_STATIC=yes
+
+script: ./scripts/build.sh "$TRAVIS_BUILD_DIR"
+
+before_deploy: export RELEASE_FILE=$(./scripts/release_consolidate.sh "$TRAVIS_BUILD_DIR")
+
+deploy:
+  provider: releases
+  api_key: "$SEC_GH_API_KEY"
+  file_glob: true
+  file: "$RELEASE_FILE"
+  skip_cleanup: true
+  on:
+    tags: true
