@@ -5,7 +5,7 @@ set -e
 
 # We take the root of the project (the main working dir) as the first argument.
 [ "$#" -ge 1 ]
-cd "$1/deps"
+cd "$1/scripts"
 
 # Check for existence of key file (so we can do integrity check)
 [ -f libsodium.asc ]
