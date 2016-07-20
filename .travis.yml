@@ -23,9 +23,9 @@ before_deploy: export RELEASE_FILE=$(./scripts/release_consolidate.sh "$TRAVIS_B
 
 deploy:
   provider: releases
-  api_key: "$SEC_GH_API_KEY"
+  api_key: ${SEC_GH_API_KEY}
   file_glob: true
-  file: "$RELEASE_FILE"
+  file: ${RELEASE_FILE}
   skip_cleanup: true
   on:
     tags: true

@@ -9,7 +9,9 @@ set -e
 cd "$1"
 
 release_binary="$1/target/release/passthesalt"
+>&2 echo 'Checking for release binary output...'
 [ -f "$release_binary" ]
+>&2 echo 'Copying release binary output...'
 cp -- "$release_binary" .
 
 name_with_version=$(./passthesalt --version | sed -e 's/ /-/')
@@ -21,5 +23,6 @@ case "$TRAVIS_OS_NAME" in
         to_upload="${name_with_version}-linux.zip"
         ;;
 esac
+>&2 echo "Zipping release as ${to_upload}..."
 zip -r "$to_upload" passthesalt > /dev/null
 echo "$to_upload"
