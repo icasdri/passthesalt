@@ -9,9 +9,9 @@ set -e
 cd "$1"
 
 if [ -z "$TRAVIS_TAG" ]; then
-    cargo build --release --verbose
-    cargo test --release --verbose
-else
     cargo build --verbose
     cargo test --verbose
+else
+    cargo build --release --verbose
+    cargo test --release --verbose
 fi
