@@ -8,6 +8,9 @@ set -e
 [ "$#" -ge 1 ]
 cd "$1"
 
+export SODIUM_LIB_DIR="$1/usr/local/lib" 
+export SODIUM_STATIC=yes
+
 if [ -z "$TRAVIS_TAG" ]; then
     echo "Doing a DEBUG (default) build..."
     cargo build --verbose
