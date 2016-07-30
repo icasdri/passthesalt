@@ -35,11 +35,10 @@ zip -r "$to_upload" passthesalt > /dev/null
 if [ -z "$2" ]; then
     >&2 echo "Not a tag build, skipping deployment."
 else
-    >&2 echo "Retrieving and invoking dpl."
-    export GEM_HOME="$1"
-    export GEM_PATH="$1"
-    export PATH="$PATH:$GEM_PATH"
+    >&2 echo "Retrieving and invoking github-release."
+    
+    go get github.com/aktau/github-release
 
-    gem install dpl
-    dpl --provider=releases --api-key="$4" --repo='icasdri/passthesalt' --file="$to_upload" --release-number="$TRAVIS_TAG" --skip_cleanup
+    export PATH="$PATH:$GOPATH"
+    github-release upload --security-token "$4" --user icasdri --repo passthesalt --tag "$2" --file "$to_upload" --name "$to_upload"
 fi
