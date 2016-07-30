@@ -3,9 +3,9 @@
 # Fail on any non-zero exit status
 set -e
 
-# We take the root of the project (the main working dir -- where we live) as
-# the first argument.
-[ "$#" -ge 1 ]
+# We take the root of the project as first argument
+# and GitHub API key with access to repo for deployment as second argument
+[ "$#" -ge 2 ]
 cd "$1"
 
 release_binary="$1/target/release/passthesalt"
@@ -37,5 +37,5 @@ else
     export PATH="$PATH:$GEM_PATH"
 
     gem install dpl
-    dpl --provider=releases --api-key="$SEC_GH_API_KEY" --repo='passthesalt' --file="$to_upload" --release-number="$TRAVIS_TAG" --skip_cleanup
+    dpl --provider=releases --api-key="$2" --repo='passthesalt' --file="$to_upload" --release-number="$TRAVIS_TAG" --skip_cleanup
 fi
