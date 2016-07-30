@@ -37,8 +37,10 @@ if [ -z "$2" ]; then
 else
     >&2 echo "Retrieving and invoking github-release."
     
+    export GOPATH="$1"
+    export PATH="$PATH:$GOPATH"
+
     go get github.com/aktau/github-release
 
-    export PATH="$PATH:$GOPATH"
     github-release upload --security-token "$4" --user icasdri --repo passthesalt --tag "$2" --file "$to_upload" --name "$to_upload"
 fi
