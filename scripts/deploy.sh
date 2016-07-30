@@ -25,4 +25,17 @@ case "$TRAVIS_OS_NAME" in
 esac
 >&2 echo "Zipping release as ${to_upload}..."
 zip -r "$to_upload" passthesalt > /dev/null
-echo "$to_upload"
+
+
+# GitHub Release uploading by dpl
+if [ -z "$TRAVIS_TAG" ]; then
+    >&2 echo "Not a tag build, skipping deployment."
+else
+    >&2 echo "Retrieving and invoking dpl."
+    export GEM_HOME="$1"
+    export GEM_PATH="$1"
+    export PATH="$PATH:$GEM_PATH"
+
+    gem install dpl
+    dpl --api-key "$SEC_GH_API_KEY" --repo 'passthesalt' --file="$to_upload" --release-number="$TRAVIS_TAG" --skip_cleanup
+fi

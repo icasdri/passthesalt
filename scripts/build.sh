@@ -9,9 +9,11 @@ set -e
 cd "$1"
 
 if [ -z "$TRAVIS_TAG" ]; then
+    echo "Doing a DEBUG (default) build..."
     cargo build --verbose
     cargo test --verbose
 else
+    echo "Doing a RELEASE build..."
     cargo build --release --verbose
     cargo test --release --verbose
 fi

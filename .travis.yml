@@ -19,13 +19,8 @@ env: SODIUM_LIB_DIR="$TRAVIS_BUILD_DIR/usr/local/lib" SODIUM_STATIC=yes
 
 script: ./scripts/build.sh "$TRAVIS_BUILD_DIR"
 
-before_deploy: export RELEASE_FILE=$(./scripts/release_consolidate.sh "$TRAVIS_BUILD_DIR")
-
 deploy:
-  provider: releases
-  api_key: ${SEC_GH_API_KEY}
-  file_glob: true
-  file: ${RELEASE_FILE}
-  skip_cleanup: true
+  provider: script
+  script: ./scripts/deploy.sh "$TRAVIS_BUILD_DIR"
   on:
     tags: true
