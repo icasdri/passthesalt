@@ -37,5 +37,5 @@ else
     export PATH="$PATH:$GEM_PATH"
 
     gem install dpl
-    dpl --api-key "$SEC_GH_API_KEY" --repo 'passthesalt' --file="$to_upload" --release-number="$TRAVIS_TAG" --skip_cleanup
+    dpl --provider=releases --api-key="$SEC_GH_API_KEY" --repo='passthesalt' --file="$to_upload" --release-number="$TRAVIS_TAG" --skip_cleanup
 fi

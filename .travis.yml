@@ -21,6 +21,7 @@ script: ./scripts/build.sh "$TRAVIS_BUILD_DIR"
 
 deploy:
   provider: script
+  skip_cleanup: true
   script: ./scripts/deploy.sh "$TRAVIS_BUILD_DIR"
   on:
     tags: true
