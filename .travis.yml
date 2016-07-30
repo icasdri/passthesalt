@@ -18,12 +18,12 @@ matrix:
     - os: osx
     - rust: nightly
 
-before_install: ./scripts/get_deps.sh "$TRAVIS_BUILD_DIR"
-script: ./scripts/build.sh "$TRAVIS_BUILD_DIR"
+before_install: ./scripts/get_deps.sh "$TRAVIS_BUILD_DIR" "$TRAVIS_TAG" "$TRAVIS_OS_NAME"
+script: ./scripts/build.sh "$TRAVIS_BUILD_DIR" "$TRAVIS_TAG" "$TRAVIS_OS_NAME"
 
 deploy:
   provider: script
   skip_cleanup: true
-  script: ./scripts/deploy.sh "$TRAVIS_BUILD_DIR" "$SEC_GH_API_KEY"
+  script: ./scripts/deploy.sh "$TRAVIS_BUILD_DIR" "$TRAVIS_TAG" "$TRAVIS_OS_NAME" "$SEC_GH_API_KEY"
   on:
     tags: true

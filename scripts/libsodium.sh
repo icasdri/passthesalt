@@ -3,7 +3,9 @@
 # Fail on any non-zero exit status
 set -e
 
-# We take the root of the project (the main working dir) as the first argument.
+# Args:
+#   1: directory of the root of the project
+
 [ "$#" -ge 1 ]
 cd "$1/scripts"
 

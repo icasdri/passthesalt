@@ -3,9 +3,13 @@
 # Fail on any non-zero exit status
 set -e
 
-# We take the root of the project as first argument
-# and GitHub API key with access to repo for deployment as second argument
-[ "$#" -ge 2 ]
+# Args:
+#   1: directory of the root of the project
+#   2: tag of the build if this is a tag build
+#   3: os name, either 'linux' or 'osx'
+#   4: GitHub API key with repo access for deployment
+
+[ "$#" -ge 4 ]
 cd "$1"
 
 release_binary="$1/target/release/passthesalt"
@@ -15,7 +19,7 @@ release_binary="$1/target/release/passthesalt"
 cp -- "$release_binary" .
 
 name_with_version=$(./passthesalt --version | sed -e 's/ /-/')
-case "$TRAVIS_OS_NAME" in
+case "$3" in
     osx)
         to_upload="${name_with_version}-macos.zip"
         ;;
@@ -28,7 +32,7 @@ zip -r "$to_upload" passthesalt > /dev/null
 
 
 # GitHub Release uploading by dpl
-if [ -z "$TRAVIS_TAG" ]; then
+if [ -z "$2" ]; then
     >&2 echo "Not a tag build, skipping deployment."
 else
     >&2 echo "Retrieving and invoking dpl."
@@ -37,5 +41,5 @@ else
     export PATH="$PATH:$GEM_PATH"
 
     gem install dpl
-    dpl --provider=releases --api-key="$2" --repo='passthesalt' --file="$to_upload" --release-number="$TRAVIS_TAG" --skip_cleanup
+    dpl --provider=releases --api-key="$4" --repo='icasdri/passthesalt' --file="$to_upload" --release-number="$TRAVIS_TAG" --skip_cleanup
 fi
