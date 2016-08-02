@@ -184,9 +184,10 @@ def consolidate_artifacts():
     if ENV.release_build:
         # Check that the version we have is correct
         print_e('Verifying built binary version and expected release version.')
-        result = subprocess.run([binary, '--version'],
-                                universal_newlines=True)
-        version_string = result.stdout.strip()
+        p = subprocess.Popen([binary, '--version'],
+                             stdout=subprocess.PIPE,
+                             universal_newlines=True)
+        version_string = p.stdout.read().strip()
         if version_string.startswith('passthesalt '):
             binary_version = version_string[12:].strip()
         else:
@@ -207,7 +208,7 @@ def consolidate_artifacts():
         from zipfile import ZipFile
         print_e('Zipping binary to ' + target_zip)
         with ZipFile(target_zip, 'w') as zipped:
-            zipped.write(binary)
+            zipped.write(binary, arcname=os.path.basename(binary))
     else:
         raise BuildError('Failed to find binary: {}'
                          .format_map(binary))
@@ -230,6 +231,7 @@ def deploy_release(target_zip):
         return
 
     from urllib.request import urlopen, Request
+    from urllib.error import HTTPError, URLError
     import json
 
     def repo_api(additional):
@@ -237,30 +239,44 @@ def deploy_release(target_zip):
                 ENV.github_repo_owner, ENV.github_repo_name, additional,
                 ENV.github_release_api_token)
 
-    response = urlopen(repo_api('releases/tags/{}'
-                                .format(ENV.release_version)))
-
     release_obj = None
-    if response.get_code() == 200:
-        print_e('Found existing GitHub Release.')
-        release_obj = json.loads(response.read())
-    elif response.get_code() == 404:
+    try:
+        print_e('Checking for existing GitHub Release in latest...')
+        latest_response = urlopen(repo_api('releases/latest'))
+
+        latest_obj = json.loads(latest_response.read())
+        if latest_obj.get('tag_name', None) == ENV.release_version:
+            print_e('Found existing GitHub Release.')
+            release_obj = latest_obj
+    except HTTPError as e:
+        if e.code != 404:
+            raise BuildError('Unexpected HTTP response from GitHub API: '
+                             '{} {}'.format(e.getcode(), e.msg))
+
+    if release_obj is None:
+        print_e('Checking for existing GitHub Release across all releases...')
+        all_releases_response = urlopen(repo_api('releases'))
+        all_releases = json.loads(all_releases_response.read().decode())
+        for release_i in all_releases:
+            if release_i.get('tag_name', None) == ENV.release_version:
+                print_e('Found existing GitHub Release.')
+                release_obj = release_i
+                break
+
+    if release_obj is None:
         print_e('Existing GitHub Release not found. Creating new one...')
         new_release_data = json.dumps({
             'tag_name': ENV.release_version,
             'name': 'Pending Release',
-            'body': 'Please wait while release builds finish and artifacts '
-                    'are uplaoded. This release will be available soon.',
+            'body': 'Please wait while release builds finish and artifacts'
+                    ' are uplaoded. This release will be available soon.',
             'draft': True
-        })
+        }).encode()
         request = Request(repo_api('releases'), new_release_data,
                           {'Content-Type': 'application/json'})
 
         response = urlopen(request)
-        release_obj = json.loads(response.read())
-    else:
-        raise BuildError('Unexpected HTTP response from GitHub API: '
-                         '{} {}'.format(response.get_code(), response.reason))
+        release_obj = json.loads(response.read().decode())
 
     upload_url = None
     if 'upload_url' in release_obj:
@@ -279,9 +295,16 @@ def deploy_release(target_zip):
 
     request = Request(upload_url, target_zip_data,
                       {'Content-Type': 'application/zip'})
-    print_e('Uploading release asset...')
-    response = urlopen(request)
-    if response.get_code == 201:  # HTTP code for 'Created'
+    try:
+        print_e('Uploading release asset...')
+        response = urlopen(request)
+    except URLError as e:
+        if 'Broken pipe' in e.reason:
+            raise BuildError('Failed to upload release asset. Either a '
+                             'connection problem was encountered or GitHub '
+                             'API rejected it (possibly duplicate filename?).')
+
+    if response.getcode() == 201:  # HTTP code for 'Created'
         print_e('Release asset upload successful.')
     else:
         raise BuildError('Failed to upload release asset. GitHub API '
