@@ -4,26 +4,18 @@ env:
   global:
     - secure: "FUGliqvjMcB5nxIRN6CnEKtnOCKxmst9VOTXO82sDWp8kAAPshtazSBZD7paqQLkZ4ooO93PQTwsiKo+oirDDfd+s2JnKHD+bdM6ouIg7J/GSMQ9x8vQIChCUhYmcpV2pTvXI2qNW11kKmdYvnxOommPGZ5miP69Ys87ENBVpbMMhMDvzOl9AmSnkQ0jW31vyabmriO9KGalmyjr1ntX0alDKBQNagYvauitzLF5eznzTt2gW5wZZoIWt0NotU2NYY3MLTg457+47qSdnkE/oc0YdHn8Cd318n5sDQHAviUVXzUV8CzUMceHtIXxq75D8SRnjrC7ljM+znsl6g2pr0QFw6ZVJrN8gOOGlsN4/eS42PURSd/bOOZXvWWxMc/8sqQP2/32AJ5E849nz8eXxQpQ5OmpXmbI3wCdoMmZqPl65dPFnWuQKc6RmvFZGWZZueZ6p9JwUMzuDmvGQfAsdcrKkSvnKIn6spQCWDp8JekijUpWYursPbLMuNlow0f6zsu4rze+H+1KsprzF0sSAFst1qO9Oo4zLKU2CwtzjWYeygSljMb0f32zxOXQD9u/5v/eLnpChjCxfIPci9VojtWLVN+viohErCaDCIVi6t8/MD5CmyR8APbGKdB+aZtHN08dgXNJvxl3vRzyvHymLIsRwF8oPceNJmGBCHpYQIg="
 
-os:
-  - linux
-  - osx
-
-rust:
-  - stable
-  - beta
-  - nightly
-
 matrix:
-  allow_failures:
-    - os: osx
-    - rust: nightly
+  - os: linux
+    rust: stable
+    env: CAN_RELEASE=yes
+  - os: linux
+    rust: beta
+  - os: linux
+    rust: nightly
+  - os: osx
+    rust: stable
+    env: CAN_RELEASE=yes
+  - os: osx
+    rust: nightly
 
-before_install: ./scripts/get_deps.sh "$TRAVIS_BUILD_DIR" "$TRAVIS_TAG" "$TRAVIS_OS_NAME"
-script: ./scripts/build.sh "$TRAVIS_BUILD_DIR" "$TRAVIS_TAG" "$TRAVIS_OS_NAME"
-
-deploy:
-  provider: script
-  skip_cleanup: true
-  script: ./scripts/deploy.sh "$TRAVIS_BUILD_DIR" "$TRAVIS_TAG" "$TRAVIS_OS_NAME" "$SEC_GH_API_KEY"
-  on:
-    tags: true
+script: ./build.py
