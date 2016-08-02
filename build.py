@@ -43,7 +43,13 @@ class Environment:
                 raise BuildError('Unexpected TRAVIS_OS_NAME value: {}'
                                  .format(travis_os_name))
             self.root_dir = os.getenv('TRAVIS_BUILD_DIR', self.root_dir)
-            self.release_build = 'TRAVIS_TAG' in os.environ
+
+            if 'TRAVIS_TAG' in os.environ:
+                tag = os.environ['TRAVIS_TAG']
+                self.release_build = len(tag.strip()) > 0
+            else:
+                self.release_build = False
+
             self.release_version = os.getenv('TRAVIS_TAG', None)
             self.can_release = os.getenv('CAN_RELEASE', False)
             self.github_release_api_token = os.getenv('SEC_GH_API_KEY')
@@ -90,11 +96,13 @@ def run(args):
 
 
 def get_sodium():
+    ENV.cd_root()
+    print_e('------ Dependency (libsodium) Build ------')
+
     from urllib.request import urlretrieve
     from hashlib import sha256
     import tarfile
 
-    ENV.cd_root()
     try:
         os.mkdir('libsodium')
     except FileExistsError:
@@ -142,6 +150,8 @@ def get_sodium():
 
 def build():
     ENV.cd_root()
+    print_e('------ Main Build Routine ------')
+
     os.environ['SODIUM_LIB_DIR'] = ENV.sodium_lib_dir
     os.environ['SODIUM_STATIC'] = 'yes'
 
@@ -157,49 +167,66 @@ def build():
 
 def consolidate_artifacts():
     ENV.cd_root()
+    print_e('------ Artifact Consolidation Routine ------')
+
+    if ENV.release_build:
+        binary = ENV.path('target/release/passthesalt')
+    else:
+        binary = ENV.path('target/debug/passthesalt')
 
     if ENV.os_type == 'linux' or ENV.os_type == 'macos':
-        release_binary = ENV.path('target/release/passthesalt')
+        pass  # binary path is correct
     elif ENV.os_type == 'windows':
-        release_binary = ENV.path('target/release/passthesalt.exe')
+        binary = binary + '.exe'
     else:
         raise BuildError('Unrecognized os type: {}'.format(ENV.os_type))
 
-    # Check that the version we have is correct
-    result = subprocess.run([release_binary, '--version'],
-                            universal_newlines=True)
-    version_string = result.stdout.strip()
-    if version_string.startswith('passthesalt '):
-        binary_version = version_string[12:].strip()
+    if ENV.release_build:
+        # Check that the version we have is correct
+        print_e('Verifying built binary version and expected release version.')
+        result = subprocess.run([binary, '--version'],
+                                universal_newlines=True)
+        version_string = result.stdout.strip()
+        if version_string.startswith('passthesalt '):
+            binary_version = version_string[12:].strip()
+        else:
+            raise BuildError('Unexpected output from release binary. Release '
+                             'binary outputted: ' + version_string)
+
+            if binary_version != ENV.release_version:
+                raise BuildError('Discrepancy between version from binary ({})'
+                                 ' and expected version for release ({})'
+                                 .format(binary_version, ENV.release_version))
+
+        target_zip = 'passthesalt-{}-{}.zip'.format(ENV.release_version,
+                                                    ENV.os_type)
     else:
-        raise BuildError('Unexpected output from release binary. Release '
-                         'binary outputted: ' + version_string)
+        target_zip = 'passthesalt-debug-{}.zip'.format(ENV.os_type)
 
-        if binary_version != ENV.release_version:
-            raise BuildError('Discrepancy between version from binary ({}) '
-                             'and expected version for release ({})'
-                             .format(binary_version, ENV.release_version))
-
-    target_zip = 'passthesalt-{}-{}.zip'.format(ENV.release_version,
-                                                ENV.os_type)
-
-    if os.path.isfile(release_binary):
+    if os.path.isfile(binary):
         from zipfile import ZipFile
+        print_e('Zipping binary to ' + target_zip)
         with ZipFile(target_zip, 'w') as zipped:
-            zipped.write(release_binary)
+            zipped.write(binary)
     else:
-        raise BuildError('Failed to find release binary: {}'
-                         .format_map(release_binary))
+        raise BuildError('Failed to find binary: {}'
+                         .format_map(binary))
 
     return target_zip
 
 
 def deploy_release(target_zip):
     ENV.cd_root()
+    print_e('------ Release Deployment Routine ------')
 
     if not ENV.can_release:
-        print_e('This is not a build to-be-released. '
-                'Skipping release deploymenet.')
+        print_e('This is not a build that can be released. '
+                'Skipping release deployment.')
+        return
+
+    if not ENV.release_build:
+        print_e('This is not a release build. '
+                'Skipping release deployment.')
         return
 
     from urllib.request import urlopen, Request
