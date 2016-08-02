@@ -9,15 +9,15 @@ matrix:
     - os: linux
       rust: stable
       env: CAN_RELEASE=yes
-    #- os: linux
-      #rust: beta
-    #- os: linux
-      #rust: nightly
-    #- os: osx
-      #rust: stable
-      #env: CAN_RELEASE=yes
-    #- os: osx
-      #rust: nightly
+    - os: linux
+      rust: beta
+    - os: linux
+      rust: nightly
+    - os: osx
+      rust: stable
+      env: CAN_RELEASE=yes
+    - os: osx
+      rust: nightly
 
 addons:
   apt:
